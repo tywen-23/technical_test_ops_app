@@ -1,135 +1,192 @@
 # Sales KPI Dashboard
 
-A small full-stack ops app — a sales performance dashboard. Add sales, filter
-them, and read back the key finance KPIs (revenue, orders, average order value,
-target attainment) plus revenue breakdowns by category and channel.
+A full-stack sales performance dashboard for operations and finance teams. The application reports revenue, completed orders, average order value, target attainment, revenue breakdowns, and month-end performance projections.
 
-This repository is the starting point for a technical exercise — see the
-**[exercise brief](Technical-Exercise-Sales-KPI-Dashboard.md)** for what you'll be doing.
+## Key Features
+
+- Filter sales by month, category, and channel
+- View completed-sales revenue, order count, and average order value
+- Compare revenue by category and channel
+- Track monthly target attainment
+- Project month-end revenue using the current sales pace
+- Identify whether the selected month is on track or at risk
+- Calculate the daily revenue required to recover an at-risk target
+- Add and delete sales records
+
+## Correctness Fixes
+
+The original dashboard contained several KPI calculation issues. This implementation fixes:
+
+1. **Refunded sales inclusion**
+   Revenue, orders, AOV, category totals, and channel totals now use completed sales only.
+
+2. **Percentage discount calculation**
+   Net revenue is calculated as:
+
+   ```text
+   quantity × unit price × (1 - discount percentage / 100)
+   ```
+
+3. **Category aggregation**
+   Revenue now accumulates all sales within each category instead of retaining only one row.
+
+4. **Channel classification**
+   `online` and `in_store` now use exact matching, preventing online revenue from being classified as in-store revenue.
+
+5. **Target attainment**
+   Target attainment now uses:
+
+   ```text
+   total completed revenue / monthly target × 100
+   ```
+
+   Missing and zero targets return N/A instead of causing invalid calculations.
+
+## Pace to Target
+
+For a selected month, the dashboard displays:
+
+- Month-to-date completed-sales revenue
+- Elapsed days and total days in the month
+- Projected month-end revenue
+- Monthly target
+- Variance in RM and percentage
+- On-track or at-risk status
+
+Current-month projection:
+
+```text
+MTD revenue / elapsed days × days in month
+```
+
+Calculation rules:
+
+- Past month: projection equals actual completed revenue
+- Current month: projection uses elapsed days
+- Future month: projection is N/A
+- Calendar month lengths and leap years are supported
+- The current date is evaluated in Malaysia time, UTC+8
+- Missing targets and zero-day cases return N/A
+
+## Innovation: Target Recovery Insight
+
+When the current month is behind target, the dashboard converts the shortfall into an actionable daily goal:
+
+```text
+remaining target = max(target - MTD revenue, 0)
+remaining days = days in month - elapsed days
+required daily revenue = remaining target / remaining days
+```
+
+This helps the operations team understand:
+
+- How much revenue remains
+- How many recovery days are available
+- How much revenue is required per day to reach the target
+
+The calculation safely handles achieved targets, the final day of the month, and missing targets.
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | React + Vite (plain JS) |
-| Backend  | Python + FastAPI (asyncpg, raw SQL — no ORM) |
+| Layer | Technology |
+|---|---|
+| Frontend | React + Vite |
+| Backend | Python + FastAPI |
 | Database | PostgreSQL 16 |
-| Runtime  | Docker Compose |
+| Runtime | Docker Compose |
+| Tests | Python `unittest` |
 
-## Setup
+## Running the Application
 
-You need two things: **Docker Desktop** (to run the app) and **Claude Code +
-VS Code** (to do the exercise). The steps differ slightly by operating system —
-follow your OS below, then the shared Claude Code + VS Code steps.
+Requirements:
 
-### 🪟 Windows — WSL2 + Docker Desktop
+- Docker Desktop
+- Docker Compose
 
-On Windows, run everything inside **WSL2** (a real Linux environment). Docker,
-git, and Claude Code all run from the Ubuntu shell, not PowerShell.
-
-1. **Install WSL2.** Open **PowerShell as Administrator** and run:
-   ```powershell
-   wsl --install
-   ```
-   This installs WSL2 and Ubuntu. Reboot if prompted, then set your Ubuntu
-   username/password on first launch. Verify with `wsl -l -v` (your distro
-   should show **VERSION 2**).
-2. **Install Docker Desktop for Windows** from
-   <https://www.docker.com/products/docker-desktop/>. During/after install:
-   - Settings → General → enable **Use the WSL 2 based engine**.
-   - Settings → Resources → **WSL Integration** → enable your Ubuntu distro.
-3. **Verify inside the Ubuntu (WSL) terminal:**
-   ```bash
-   docker --version && docker compose version
-   ```
-4. **Clone into the Linux filesystem** (e.g. `~/projects`), **not** `/mnt/c/...`
-   — the Windows-mounted path is much slower for Docker bind mounts.
-
-### 🍎 macOS — Docker Desktop
-
-1. **Install Docker Desktop for Mac** from
-   <https://www.docker.com/products/docker-desktop/>. Pick the build for your
-   chip (**Apple Silicon** for M1/M2/M3+, **Intel** otherwise), drag it to
-   Applications, and launch it once so the engine starts.
-2. **Verify in Terminal:**
-   ```bash
-   docker --version && docker compose version
-   ```
-
-### 🤖 Claude Code + VS Code (Windows & macOS)
-
-You'll use **Claude Code** as your AI coding assistant for this exercise.
-
-1. **Install VS Code** from <https://code.visualstudio.com/>.
-   - **Windows only:** also install the **WSL** extension (Microsoft) so VS Code
-     runs against your Ubuntu distro — then launch the editor by typing `code .`
-     from inside WSL.
-2. **Install Node.js 18+** (Claude Code needs it). Check with `node --version`.
-   - **macOS:** `brew install node`, or download from <https://nodejs.org/>.
-   - **Windows/WSL:** install inside Ubuntu, e.g. via
-     [nvm](https://github.com/nvm-sh/nvm) (`nvm install --lts`).
-3. **Install Claude Code:**
-   ```bash
-   npm install -g @anthropic-ai/claude-code
-   ```
-   (On Windows, run this in the **WSL/Ubuntu** terminal.)
-4. **Sign in.** From the project folder, run `claude`, then use `/login` and
-   follow the browser prompt.
-5. **Use it in VS Code:** open the project in VS Code and run `claude` in the
-   integrated terminal (or install the **Claude Code** extension from the
-   Marketplace). More docs: <https://docs.claude.com/en/docs/claude-code>.
-
-## Run it
-
-Once Docker Desktop is running, from the project folder (on **Windows, use the
-WSL/Ubuntu terminal**):
+From the project directory:
 
 ```bash
 docker compose up --build
 ```
 
-Then open:
+Open:
 
 | Service | URL |
-|---------|-----|
-| Web app | http://localhost:5173 |
-| API     | http://localhost:8010 (e.g. http://localhost:8010/api/summary) |
-| Postgres | localhost:5442 (user/pass/db: `sales` / `sales` / `sales`) |
+|---|---|
+| Web application | http://localhost:5173 |
+| API | http://localhost:8010 |
+| API health check | http://localhost:8010/api/health |
+| PostgreSQL | localhost:5442 |
 
-The database is seeded automatically on first start with ~75 days of sample
-sales and monthly targets. Sample dates are relative to *today*, so the current
-month is always partially elapsed.
+The database is seeded automatically when it is empty.
 
-## Reset the data
+## Running Tests
 
-Seeding runs only when the database is empty, so your own added/edited sales
-survive restarts. To wipe everything and re-seed fresh (dated to today):
+Run the backend test suite:
 
 ```bash
-docker compose down -v && docker compose up --build
+docker compose exec api python -m unittest discover -s tests -v
 ```
 
-## Project layout
+The tests cover:
 
+- Percentage discounts
+- Refunded-sale exclusion
+- Category and channel aggregation
+- Target attainment
+- Missing targets
+- Current, past, and future month projections
+- Leap years
+- Target recovery calculations
+- Final-day division-by-zero protection
+
+Build the frontend for production:
+
+```bash
+docker compose exec web npm run build
 ```
-backend/
-  main.py            FastAPI app (CORS, DB lifecycle, router wiring)
-  db.py              Pool, schema, seed data, and all queries + KPI math
-  sales/routes.py    HTTP routes (/api/...)
-frontend/
-  src/App.jsx        Dashboard shell + data loading
-  src/api.js         Tiny fetch client
-  src/components/    FilterBar, KpiCards, Breakdown, AddSaleForm, SalesTable
-docker-compose.yml   db + api + web
-```
 
-## API quick reference
+## API Reference
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/api/summary?month=&category=&channel=` | KPI totals + breakdowns |
-| GET | `/api/sales?month=&category=&channel=` | List sales |
-| POST | `/api/sales` | Create a sale (JSON body) |
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/health` | API health check |
+| GET | `/api/summary?month=&category=&channel=` | KPI totals and breakdowns |
+| GET | `/api/pace?month=YYYY-MM` | Pace-to-target and recovery metrics |
+| GET | `/api/sales?month=&category=&channel=` | Filtered sales list |
+| POST | `/api/sales` | Create a sale |
 | DELETE | `/api/sales/{id}` | Delete a sale |
-| GET | `/api/filters` | Distinct months / categories / channels |
+| GET | `/api/filters` | Available filter values |
 | GET | `/api/targets` | Monthly targets |
+
+## Project Structure
+
+```text
+backend/
+  db.py                     Database queries and KPI calculations
+  pace.py                   Pace and target recovery calculations
+  main.py                   FastAPI application
+  sales/routes.py           API routes
+  tests/test_db.py          KPI regression tests
+  tests/test_pace.py        Pace and recovery edge-case tests
+
+frontend/
+  src/App.jsx               Dashboard state and data loading
+  src/api.js                API client
+  src/components/
+    PacePanel.jsx           Pace and recovery presentation
+    KpiCards.jsx            KPI summary cards
+    Breakdown.jsx           Category and channel breakdowns
+    FilterBar.jsx           Dashboard filters
+    AddSaleForm.jsx         Sale creation form
+    SalesTable.jsx          Sales records table
+
+docker-compose.yml          Database, API, and frontend services
+```
+
+## Design Decisions
+
+- KPI calculations include only completed sales, while the sales table retains refunded records for visibility.
+- Pace to Target uses the complete monthly company target and therefore depends on the selected month, not category or channel filters.
+- The Pace panel is hidden for “All months” because monthly targets cannot be meaningfully combined into one attainment value.
+- Target Recovery Insight applies to the current month, where remaining days can still support operational action.
