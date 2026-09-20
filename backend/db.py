@@ -10,6 +10,7 @@ The dashboard KPIs are computed in `summary()`.
 import os
 from datetime import date, timedelta
 from decimal import Decimal
+from pace import calculate_pace, malaysia_today
 
 import asyncpg
 
@@ -146,6 +147,39 @@ async def summary(conn, month=None, category=None, channel=None):
         ],
     }
 
+async def pace_to_target(conn, month):
+    """Return pace-to-target metrics for one month."""
+    today = malaysia_today()
+    current_month = today.strftime("%Y-%m")
+
+    rows = await conn.fetch(
+        """
+        SELECT *
+        FROM sales
+        WHERE to_char(sale_date, 'YYYY-MM') = $1
+          AND status = 'completed'
+        """,
+        month,
+    )
+
+    if month == current_month:
+        rows = [r for r in rows if r["sale_date"] <= today]
+    elif month > current_month:
+        rows = []
+
+    mtd_revenue = sum(_line_net(r) for r in rows)
+
+    target = await conn.fetchval(
+        "SELECT target_amount FROM monthly_targets WHERE month = $1",
+        month,
+    )
+
+    return calculate_pace(
+        month=month,
+        mtd_revenue=mtd_revenue,
+        target=target,
+        today=today,
+    )
 
 # --------------------------------------------------------------------------- #
 # Sales CRUD

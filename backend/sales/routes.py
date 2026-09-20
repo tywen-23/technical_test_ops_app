@@ -6,7 +6,7 @@ lives in `db.summary()`.
 
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 import db
@@ -30,6 +30,15 @@ async def get_summary(month: str | None = None, category: str | None = None, cha
     async with db.pool.acquire() as conn:
         return await db.summary(conn, month, category, channel)
 
+@router.get("/pace")
+async def get_pace(
+    month: str = Query(
+        ...,
+        pattern=r"^\d{4}-(0[1-9]|1[0-2])$",
+    ),
+):
+    async with db.pool.acquire() as conn:
+        return await db.pace_to_target(conn, month)
 
 @router.get("/sales")
 async def get_sales(month: str | None = None, category: str | None = None, channel: str | None = None):
