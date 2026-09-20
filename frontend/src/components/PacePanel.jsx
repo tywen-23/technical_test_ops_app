@@ -3,7 +3,7 @@ import { pct, rm } from "../format.js";
 
 const STATUS_LABELS = {
   on_track: "On track",
-  at_risk: "At risk",
+  at_risk: "At risk of missing target",
   "n/a": "N/A",
 };
 
@@ -29,6 +29,25 @@ export default function PacePanel({ pace }) {
     ["Variance %", pct(pace.variance_pct)],
   ];
 
+    let recoveryMessage = null;
+
+    if (pace.remaining_to_target != null) {
+        if (pace.remaining_to_target === 0) {
+        recoveryMessage =
+            "Target reached. No additional daily revenue is required.";
+        } else if (pace.required_daily_revenue != null) {
+        recoveryMessage =
+            `${rm(pace.remaining_to_target)} remaining with ` +
+            `${pace.remaining_days} days left. ` +
+            `${rm(pace.required_daily_revenue)} per day is required ` +
+            "to reach the monthly target.";
+        } else {
+        recoveryMessage =
+            `${rm(pace.remaining_to_target)} remained at month end ` +
+            "with no recovery days available.";
+        }
+    }
+
   return (
     <section className="panel pace-panel">
       <div className="pace-header">
@@ -52,6 +71,13 @@ export default function PacePanel({ pace }) {
           </div>
         ))}
       </div>
+
+      {recoveryMessage && (
+        <div className={`recovery-insight ${pace.status}`}>
+          <div className="recovery-title">Target Recovery Insight</div>
+          <p>{recoveryMessage}</p>
+        </div>
+      )}
     </section>
   );
 }

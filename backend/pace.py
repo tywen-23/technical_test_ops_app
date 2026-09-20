@@ -47,6 +47,25 @@ def calculate_pace(month, mtd_revenue, target, today=None):
         variance_pct = None
         status = "n/a"
 
+    if (
+        selected_month == current_month
+        and target_value is not None
+        and target_value > 0
+    ):
+        remaining_to_target = max(target_value - revenue, 0)
+        remaining_days = days_in_month - elapsed_days
+
+        if remaining_to_target == 0:
+            required_daily_revenue = 0.0
+        elif remaining_days > 0:
+            required_daily_revenue = remaining_to_target / remaining_days
+        else:
+            required_daily_revenue = None
+    else:
+        remaining_to_target = None
+        remaining_days = None
+        required_daily_revenue = None
+
     return {
         "mtd_revenue": revenue,
         "elapsed_days": elapsed_days,
@@ -65,6 +84,17 @@ def calculate_pace(month, mtd_revenue, target, today=None):
         "variance_pct": (
             round(variance_pct, 1)
             if variance_pct is not None
+            else None
+        ),
+         "remaining_to_target": (
+            round(remaining_to_target, 2)
+            if remaining_to_target is not None
+            else None
+        ),
+        "remaining_days": remaining_days,
+        "required_daily_revenue": (
+            round(required_daily_revenue, 2)
+            if required_daily_revenue is not None
             else None
         ),
         "status": status,

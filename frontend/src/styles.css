@@ -443,3 +443,35 @@ tr.refunded td {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.recovery-insight {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--muted);
+  background: var(--track);
+}
+
+.recovery-insight.on_track {
+  border-left-color: #12b76a;
+  background: #ecfdf3;
+}
+
+.recovery-insight.at_risk {
+  border-left-color: var(--danger);
+  background: #fef3f2;
+}
+
+.recovery-title {
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.recovery-insight p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}

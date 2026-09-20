@@ -19,6 +19,9 @@ class PaceCalculationTests(unittest.TestCase):
         self.assertEqual(result["variance_amount"], -2810.95)
         self.assertEqual(result["variance_pct"], -28.1)
         self.assertEqual(result["status"], "at_risk")
+        self.assertEqual(result["remaining_to_target"], 5207.30)
+        self.assertEqual(result["remaining_days"], 10)
+        self.assertEqual(result["required_daily_revenue"], 520.73)
 
     def test_past_month_uses_actual_revenue_as_projection(self):
         result = calculate_pace(
@@ -68,6 +71,30 @@ class PaceCalculationTests(unittest.TestCase):
         self.assertIsNone(result["variance_amount"])
         self.assertIsNone(result["variance_pct"])
         self.assertEqual(result["status"], "n/a")
+
+    def test_recovery_is_zero_when_target_already_reached(self):
+        result = calculate_pace(
+            month="2026-09",
+            mtd_revenue=12000,
+            target=10000,
+            today=date(2026, 9, 20),
+        )
+
+        self.assertEqual(result["remaining_to_target"], 0.0)
+        self.assertEqual(result["remaining_days"], 10)
+        self.assertEqual(result["required_daily_revenue"], 0.0)
+
+    def test_recovery_avoids_division_by_zero_on_last_day(self):
+        result = calculate_pace(
+            month="2026-09",
+            mtd_revenue=9000,
+            target=10000,
+            today=date(2026, 9, 30),
+        )
+
+        self.assertEqual(result["remaining_to_target"], 1000.0)
+        self.assertEqual(result["remaining_days"], 0)
+        self.assertIsNone(result["required_daily_revenue"])
 
 
 if __name__ == "__main__":
