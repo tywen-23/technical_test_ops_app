@@ -361,3 +361,85 @@ tr.refunded td {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Pace to target ---------------------------------------------------------- */
+.pace-panel {
+  margin-bottom: 28px;
+}
+
+.pace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pace-title {
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+
+.pace-header .muted {
+  margin: 0;
+}
+
+.pace-status {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--track);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pace-status.on_track {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.pace-status.at_risk {
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.pace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.pace-metric {
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.pace-value {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pace-label {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .pace-header {
+    align-items: center;
+  }
+
+  .pace-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
