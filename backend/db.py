@@ -61,8 +61,10 @@ async def close_db():
 
 def _line_net(r):
     """Net revenue for a single sale line."""
-    return float(r["quantity"] * r["unit_price"] - r["discount_pct"])
-
+    return float(
+        r["quantity"] * r["unit_price"] 
+        * (1 - r["discount_pct"] / 100)
+    )
 
 # --------------------------------------------------------------------------- #
 # Filters
@@ -91,11 +93,12 @@ def _build_filters(month, category, channel):
 async def summary(conn, month=None, category=None, channel=None):
     where, params = _build_filters(month, category, channel)
     rows = await conn.fetch(f"SELECT * FROM sales {where}", *params)
+    completed_rows = [r for r in rows if r["status"] == "completed"]
 
     # Totals
     total_revenue = 0.0
     order_count = 0
-    for r in rows:
+    for r in completed_rows:
         total_revenue += _line_net(r)
         order_count += 1
 
@@ -103,18 +106,18 @@ async def summary(conn, month=None, category=None, channel=None):
 
     # Revenue by category
     by_category = {}
-    for r in rows:
+    for r in completed_rows:
         subtotal = by_category.get(r["category"], 0)
-        subtotal = _line_net(r)
+        subtotal += _line_net(r)
         by_category[r["category"]] = subtotal
 
     # Revenue by channel
     by_channel = {"online": 0.0, "in_store": 0.0}
-    for r in rows:
+    for r in completed_rows:
         ch = r["channel"]
-        if "in" in ch:
+        if ch == "in_store":
             by_channel["in_store"] += _line_net(r)
-        elif "online" in ch:
+        elif ch == "online":
             by_channel["online"] += _line_net(r)
 
     # Target attainment for the selected month
@@ -123,7 +126,11 @@ async def summary(conn, month=None, category=None, channel=None):
         target = await conn.fetchval(
             "SELECT target_amount FROM monthly_targets WHERE month = $1", month
         )
-    attainment_pct = round(total_revenue / order_count * 100, 1) if order_count else None
+    attainment_pct = (
+        round(total_revenue / float(target) * 100, 1) 
+        if target is not None and float(target) > 0
+        else None
+    )
 
     return {
         "total_revenue": round(total_revenue, 2),
